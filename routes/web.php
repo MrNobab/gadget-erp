@@ -27,9 +27,11 @@ Route::get('/', function () {
 Route::prefix('admin')->group(function (): void {
     Route::get('/login', [SuperAdminAuthController::class, 'loginForm'])->name('admin.login');
     Route::post('/login', [SuperAdminAuthController::class, 'login'])->name('admin.login.submit');
+    Route::get('/branding/logo', [SuperAdminAuthController::class, 'platformLogo'])->name('admin.branding.logo');
 
     Route::middleware(EnsureSuperAdminAuthenticated::class)->group(function (): void {
         Route::get('/dashboard', [SuperAdminAuthController::class, 'dashboard'])->name('admin.dashboard');
+        Route::put('/dashboard/branding', [SuperAdminAuthController::class, 'updateBranding'])->name('admin.branding.update');
         Route::post('/logout', [SuperAdminAuthController::class, 'logout'])->name('admin.logout');
 
         Route::get('/plans', [AdminPlanController::class, 'index'])->name('admin.plans.index');

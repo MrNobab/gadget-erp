@@ -10,6 +10,8 @@ use App\Platform\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class SuperAdminAuthController extends Controller
@@ -49,13 +51,67 @@ class SuperAdminAuthController extends Controller
 
     public function dashboard(): View
     {
+        $superAdmin = SuperAdmin::query()->find(session('super_admin_id'));
+
         return view('admin.dashboard', [
+            'superAdmin' => $superAdmin,
             'tenantCount' => Tenant::query()->count(),
             'planCount' => Plan::query()->count(),
             'activeLicenseCount' => License::query()->where('status', License::STATUS_ACTIVE)->count(),
             'frozenLicenseCount' => License::query()->where('status', License::STATUS_FROZEN)->count(),
             'suspendedLicenseCount' => License::query()->where('status', License::STATUS_SUSPENDED)->count(),
             'expiredLicenseCount' => License::query()->where('status', License::STATUS_EXPIRED)->count(),
+        ]);
+    }
+
+    public function updateBranding(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'brand_name' => ['nullable', 'string', 'max:100'],
+            'brand_tagline' => ['nullable', 'string', 'max:150'],
+            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:512'],
+            'remove_logo' => ['nullable', 'boolean'],
+        ]);
+
+        $superAdmin = SuperAdmin::query()->findOrFail($request->session()->get('super_admin_id'));
+
+        if ($request->boolean('remove_logo') && $superAdmin->logo_path) {
+            Storage::disk('public')->delete($superAdmin->logo_path);
+            $superAdmin->logo_path = null;
+        }
+
+        if ($request->hasFile('logo')) {
+            if ($superAdmin->logo_path) {
+                Storage::disk('public')->delete($superAdmin->logo_path);
+            }
+
+            $superAdmin->logo_path = $request->file('logo')->store('platform-branding', 'public');
+        }
+
+        $superAdmin->brand_name = $validated['brand_name'] ?: null;
+        $superAdmin->brand_tagline = $validated['brand_tagline'] ?: null;
+        $superAdmin->save();
+
+        return back()->with('success', 'ERP owner branding updated successfully.');
+    }
+
+    public function platformLogo()
+    {
+        if (! Schema::hasColumn('super_admins', 'logo_path')) {
+            abort(404, 'ERP owner logo not found.');
+        }
+
+        $superAdmin = SuperAdmin::query()
+            ->whereNotNull('logo_path')
+            ->latest('updated_at')
+            ->first();
+
+        if (! $superAdmin || ! Storage::disk('public')->exists($superAdmin->logo_path)) {
+            abort(404, 'ERP owner logo not found.');
+        }
+
+        return response()->file(Storage::disk('public')->path($superAdmin->logo_path), [
+            'Cache-Control' => 'public, max-age=86400',
         ]);
     }
 
