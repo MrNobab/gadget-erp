@@ -35,6 +35,39 @@
 
             @if(session()->has('tenant_user_id') && isset($tenant))
                 <nav class="border-t border-slate-200">
+                    @php
+                        $warehouseTasks = $transferTaskSummary['warehouse'] ?? [];
+                        $shopTasks = $transferTaskSummary['shop'] ?? [];
+
+                        $warehouseTaskTotal = (int) ($warehouseTasks['total'] ?? 0);
+                        $shopTaskTotal = (int) ($shopTasks['total'] ?? 0);
+
+                        $warehouseTaskBadge = $warehouseTaskTotal > 99 ? '99+' : $warehouseTaskTotal;
+                        $shopTaskBadge = $shopTaskTotal > 99 ? '99+' : $shopTaskTotal;
+
+                        $warehouseTaskTitle = sprintf(
+                            '%d new, %d to send, %d in transit, %d need acknowledgement',
+                            (int) ($warehouseTasks['requested'] ?? 0),
+                            (int) ($warehouseTasks['accepted'] ?? 0),
+                            (int) ($warehouseTasks['in_transit'] ?? 0),
+                            (int) ($warehouseTasks['received_unacknowledged'] ?? 0),
+                        );
+
+                        $shopTaskTitle = sprintf(
+                            '%d incoming, %d waiting warehouse',
+                            (int) ($shopTasks['incoming'] ?? 0),
+                            (int) ($shopTasks['waiting'] ?? 0),
+                        );
+
+                        $warehouseTaskBadgeClass = ((int) ($warehouseTasks['received_unacknowledged'] ?? 0)) > 0
+                            ? 'bg-red-600 text-white'
+                            : 'bg-amber-500 text-white';
+
+                        $shopTaskBadgeClass = ((int) ($shopTasks['incoming'] ?? 0)) > 0
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-amber-500 text-white';
+                    @endphp
+
                     <div class="max-w-7xl mx-auto px-4 flex flex-wrap gap-2 py-3">
                         <a href="{{ route('tenant.dashboard', $tenant) }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.dashboard') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
                             Dashboard
@@ -52,8 +85,26 @@
                             Products
                         </a>
 
-                        <a href="{{ route('tenant.stock.index', $tenant) }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.stock.*') || request()->routeIs('tenant.stock-in.*') || request()->routeIs('tenant.stock-adjustments.*') || request()->routeIs('tenant.stock-movements.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
+                        <a href="{{ route('tenant.stock.index', $tenant) }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.stock.*') || request()->routeIs('tenant.stock-in.*') || request()->routeIs('tenant.stock-adjustments.*') || request()->routeIs('tenant.stock-movements.*') || request()->routeIs('tenant.stock-transfers.index') || request()->routeIs('tenant.stock-transfers.create') || request()->routeIs('tenant.stock-transfers.show') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
                             Stock
+                        </a>
+
+                        <a href="{{ route('tenant.stock-transfers.warehouse-tasks', $tenant) }}" title="{{ $warehouseTaskTitle }}" class="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 {{ request()->routeIs('tenant.stock-transfers.warehouse-tasks') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
+                            <span>Warehouse Tasks</span>
+                            @if($warehouseTaskTotal > 0)
+                                <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold {{ $warehouseTaskBadgeClass }}">
+                                    {{ $warehouseTaskBadge }}
+                                </span>
+                            @endif
+                        </a>
+
+                        <a href="{{ route('tenant.stock-transfers.shop-tasks', $tenant) }}" title="{{ $shopTaskTitle }}" class="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 {{ request()->routeIs('tenant.stock-transfers.shop-tasks') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
+                            <span>Shop Tasks</span>
+                            @if($shopTaskTotal > 0)
+                                <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold {{ $shopTaskBadgeClass }}">
+                                    {{ $shopTaskBadge }}
+                                </span>
+                            @endif
                         </a>
 
                         <a href="{{ route('tenant.customers.index', $tenant) }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.customers.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">

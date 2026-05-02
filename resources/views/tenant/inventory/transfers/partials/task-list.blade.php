@@ -1,8 +1,24 @@
+@php
+    $taskCount = $transfers->count();
+
+    $taskBadgeClass = match ($actionType ?? '') {
+        'warehouse_requested', 'shop_waiting' => 'bg-yellow-100 text-yellow-800',
+        'warehouse_accepted' => 'bg-purple-100 text-purple-800',
+        'warehouse_in_transit', 'shop_incoming' => 'bg-blue-100 text-blue-800',
+        'warehouse_received_unacknowledged' => 'bg-red-100 text-red-800',
+        default => 'bg-slate-100 text-slate-700',
+    };
+
+    if ($taskCount === 0) {
+        $taskBadgeClass = 'bg-slate-100 text-slate-700';
+    }
+@endphp
+
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto mb-6">
     <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
         <h3 class="text-lg font-bold">{{ $title }}</h3>
-        <span class="px-2 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
-            {{ $transfers->count() }}
+        <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $taskBadgeClass }}">
+            {{ $taskCount }}
         </span>
     </div>
 

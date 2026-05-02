@@ -56,7 +56,7 @@
     ])
 
     @include('tenant.inventory.transfers.partials.task-list', [
-        'title' => 'Received By Shop — Need Warehouse Acknowledgement',
+        'title' => 'Received By Shop - Need Warehouse Acknowledgement',
         'transfers' => $receivedUnacknowledgedTransfers,
         'empty' => 'No received transfers waiting acknowledgement.',
         'actionType' => 'warehouse_received_unacknowledged',
