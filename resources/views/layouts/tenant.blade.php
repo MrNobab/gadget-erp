@@ -162,7 +162,7 @@
                                 </svg>
                             </button>
 
-                            <div class="invisible pointer-events-none absolute left-0 z-30 mt-2 w-52 rounded-lg border border-slate-200 bg-white shadow-lg opacity-0 transition group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:visible group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+                            <div class="invisible pointer-events-none absolute left-0 z-30   w-52 rounded-lg border border-slate-200 bg-white shadow-lg opacity-0 transition group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:visible group-focus-within:pointer-events-auto group-focus-within:opacity-100">
                                 <a href="{{ route('tenant.products.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Products</a>
                                 <a href="{{ route('tenant.products.barcode-labels.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Barcode Labels</a>
                                 <a href="{{ route('tenant.mobile-scanner.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Mobile Scanner</a>
@@ -179,7 +179,7 @@
                                 </svg>
                             </button>
 
-                            <div class="invisible pointer-events-none absolute left-0 z-30 mt-2 w-52 rounded-lg border border-slate-200 bg-white shadow-lg opacity-0 transition group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:visible group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+                            <div class="invisible pointer-events-none absolute left-0 z-30   w-52 rounded-lg border border-slate-200 bg-white shadow-lg opacity-0 transition group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:visible group-focus-within:pointer-events-auto group-focus-within:opacity-100">
                                 <a href="{{ route('tenant.stock.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Stock Levels</a>
                                 <a href="{{ route('tenant.stock-in.create', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Stock In</a>
                                 <a href="{{ route('tenant.stock-transfers.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Transfers</a>
@@ -203,7 +203,7 @@
                                 </svg>
                             </button>
 
-                            <div class="invisible pointer-events-none absolute left-0 z-30 mt-2 w-52 rounded-lg border border-slate-200 bg-white shadow-lg opacity-0 transition group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:visible group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+                            <div class="invisible pointer-events-none absolute left-0 z-30   w-52 rounded-lg border border-slate-200 bg-white shadow-lg opacity-0 transition group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:visible group-focus-within:pointer-events-auto group-focus-within:opacity-100">
                                 <a href="{{ route('tenant.purchases.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Purchase History</a>
                                 <a href="{{ route('tenant.suppliers.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Suppliers</a>
                             </div>
@@ -226,7 +226,7 @@
                                 </svg>
                             </button>
 
-                            <div class="invisible pointer-events-none absolute right-0 z-30 mt-2 w-56 rounded-lg border border-slate-200 bg-white shadow-lg opacity-0 transition group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:visible group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+                            <div class="invisible pointer-events-none absolute right-0 z-30   w-56 rounded-lg border border-slate-200 bg-white shadow-lg opacity-0 transition group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:visible group-focus-within:pointer-events-auto group-focus-within:opacity-100">
                                 <a href="{{ route('tenant.stock-transfers.shop-tasks', $tenant) }}" title="{{ $shopTaskTitle }}" class="flex items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">
                                     <span>Shop Task</span>
                                     @if($shopTaskTotal > 0)
