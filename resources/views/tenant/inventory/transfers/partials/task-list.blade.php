@@ -28,6 +28,7 @@
                 <th class="text-left px-4 py-3">Transfer</th>
                 <th class="text-left px-4 py-3">From</th>
                 <th class="text-left px-4 py-3">To</th>
+                <th class="text-left px-4 py-3">Task</th>
                 <th class="text-left px-4 py-3">Status</th>
                 <th class="text-left px-4 py-3">Requested By</th>
                 <th class="text-left px-4 py-3">Time</th>
@@ -37,6 +38,12 @@
 
         <tbody class="divide-y divide-slate-100">
             @forelse($transfers as $transfer)
+                @php
+                    $rowActionType = $transfer->task_action_type ?? $actionType;
+                    $taskStatusLabel = $transfer->task_status_label ?? ucwords(str_replace('_', ' ', $rowActionType));
+                    $taskStatusClass = $transfer->task_badge_class ?? $taskBadgeClass;
+                @endphp
+
                 <tr>
                     <td class="px-4 py-3 font-semibold">{{ $transfer->transfer_number }}</td>
 
@@ -48,6 +55,12 @@
                     <td class="px-4 py-3">
                         {{ $transfer->destination?->name }}
                         <div class="text-xs text-slate-500">{{ ucwords($transfer->destination?->type) }}</div>
+                    </td>
+
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $taskStatusClass }}">
+                            {{ $taskStatusLabel }}
+                        </span>
                     </td>
 
                     <td class="px-4 py-3">
@@ -85,7 +98,7 @@
                                 View
                             </a>
 
-                            @if($actionType === 'warehouse_requested')
+                            @if($rowActionType === 'warehouse_requested')
                                 <form method="POST" action="{{ route('tenant.stock-transfers.accept', [$tenant, $transfer->id]) }}">
                                     @csrf
                                     <input type="hidden" name="note" value="Accepted from warehouse tasks">
@@ -103,7 +116,7 @@
                                 </form>
                             @endif
 
-                            @if($actionType === 'warehouse_accepted')
+                            @if($rowActionType === 'warehouse_accepted')
                                 <form method="POST" action="{{ route('tenant.stock-transfers.send', [$tenant, $transfer->id]) }}" onsubmit="return confirm('Send this stock now?')">
                                     @csrf
                                     <input type="hidden" name="note" value="Sent from warehouse tasks">
@@ -113,7 +126,7 @@
                                 </form>
                             @endif
 
-                            @if($actionType === 'shop_incoming')
+                            @if($rowActionType === 'shop_incoming')
                                 <form method="POST" action="{{ route('tenant.stock-transfers.receive', [$tenant, $transfer->id]) }}" onsubmit="return confirm('Confirm stock received?')">
                                     @csrf
                                     <input type="hidden" name="note" value="Received from shop tasks">
@@ -123,7 +136,7 @@
                                 </form>
                             @endif
 
-                            @if($actionType === 'warehouse_received_unacknowledged')
+                            @if($rowActionType === 'warehouse_received_unacknowledged')
                                 <form method="POST" action="{{ route('tenant.stock-transfers.acknowledge-received', [$tenant, $transfer->id]) }}">
                                     @csrf
                                     <input type="hidden" name="note" value="Warehouse marked received transfer as read">
@@ -137,7 +150,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="px-4 py-8 text-center text-slate-500">
+                    <td colspan="8" class="px-4 py-8 text-center text-slate-500">
                         {{ $empty }}
                     </td>
                 </tr>

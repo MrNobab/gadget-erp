@@ -25,16 +25,9 @@
     </div>
 
     @include('tenant.inventory.transfers.partials.task-list', [
-        'title' => 'Incoming Stock Waiting To Receive',
-        'transfers' => $incomingTransfers,
-        'empty' => 'No incoming stock waiting to receive.',
-        'actionType' => 'shop_incoming',
-    ])
-
-    @include('tenant.inventory.transfers.partials.task-list', [
-        'title' => 'Shop Requests Waiting For Warehouse',
-        'transfers' => $requestedByShopTransfers,
-        'empty' => 'No shop requests waiting for warehouse.',
-        'actionType' => 'shop_waiting',
+        'title' => 'Shop Task Queue',
+        'transfers' => $shopTaskTransfers,
+        'empty' => 'No shop tasks right now.',
+        'actionType' => 'mixed',
     ])
 @endsection

@@ -35,30 +35,9 @@
     </div>
 
     @include('tenant.inventory.transfers.partials.task-list', [
-        'title' => 'New Transfer Requests',
-        'transfers' => $requestedTransfers,
-        'empty' => 'No new transfer requests.',
-        'actionType' => 'warehouse_requested',
-    ])
-
-    @include('tenant.inventory.transfers.partials.task-list', [
-        'title' => 'Accepted Requests Waiting To Send',
-        'transfers' => $acceptedTransfers,
-        'empty' => 'No accepted transfers waiting to send.',
-        'actionType' => 'warehouse_accepted',
-    ])
-
-    @include('tenant.inventory.transfers.partials.task-list', [
-        'title' => 'In Transit From Warehouse',
-        'transfers' => $inTransitTransfers,
-        'empty' => 'No in-transit transfers.',
-        'actionType' => 'warehouse_in_transit',
-    ])
-
-    @include('tenant.inventory.transfers.partials.task-list', [
-        'title' => 'Received By Shop - Need Warehouse Acknowledgement',
-        'transfers' => $receivedUnacknowledgedTransfers,
-        'empty' => 'No received transfers waiting acknowledgement.',
-        'actionType' => 'warehouse_received_unacknowledged',
+        'title' => 'Warehouse Task Queue',
+        'transfers' => $warehouseTaskTransfers,
+        'empty' => 'No warehouse tasks right now.',
+        'actionType' => 'mixed',
     ])
 @endsection

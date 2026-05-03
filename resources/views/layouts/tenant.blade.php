@@ -18,8 +18,6 @@
                 $shopName = $tenant->name ?? 'Gadget ERP';
                 $profileName = (string) session('tenant_user_name', 'User');
                 $profileEmail = (string) session('tenant_user_email', '');
-                $profileParts = preg_split('/\s+/', trim($profileName)) ?: [];
-                $profileInitials = strtoupper(substr($profileParts[0] ?? 'U', 0, 1) . substr($profileParts[1] ?? '', 0, 1));
                 $shopParts = preg_split('/\s+/', trim($shopName)) ?: [];
                 $shopInitials = strtoupper(substr($shopParts[0] ?? 'S', 0, 1) . substr($shopParts[1] ?? '', 0, 1));
                 $brandParts = preg_split('/\s+/', trim((string) ($brand['name'] ?? 'Gadget ERP'))) ?: [];
@@ -53,7 +51,6 @@
 
                     <div class="text-center">
                         <h1 class="text-lg font-bold leading-tight">{{ $shopName }}</h1>
-                        <p class="text-xs text-slate-500">/{{ $tenant->slug ?? '' }}</p>
                     </div>
                 </div>
 
@@ -67,7 +64,10 @@
                                 </span>
 
                                 <span class="h-10 w-10 rounded-lg bg-slate-900 text-white grid place-items-center text-sm font-bold">
-                                    {{ $profileInitials }}
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M20 21a8 8 0 0 0-16 0" />
+                                        <circle cx="12" cy="7" r="4" />
+                                    </svg>
                                 </span>
                             </summary>
 

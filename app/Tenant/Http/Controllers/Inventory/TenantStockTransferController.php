@@ -75,12 +75,19 @@ class TenantStockTransferController extends Controller
             ->latest()
             ->get();
 
+        $warehouseTaskTransfers = $this->markTaskTransfers($requestedTransfers, 'New Request', 'warehouse_requested', 'bg-yellow-100 text-yellow-800')
+            ->concat($this->markTaskTransfers($acceptedTransfers, 'Ready To Send', 'warehouse_accepted', 'bg-purple-100 text-purple-800'))
+            ->concat($this->markTaskTransfers($inTransitTransfers, 'In Transit', 'warehouse_in_transit', 'bg-blue-100 text-blue-800'))
+            ->concat($this->markTaskTransfers($receivedUnacknowledgedTransfers, 'Need Acknowledgement', 'warehouse_received_unacknowledged', 'bg-red-100 text-red-800'))
+            ->values();
+
         return view('tenant.inventory.transfers.warehouse-tasks', [
             'tenant' => $tenant,
             'requestedTransfers' => $requestedTransfers,
             'acceptedTransfers' => $acceptedTransfers,
             'inTransitTransfers' => $inTransitTransfers,
             'receivedUnacknowledgedTransfers' => $receivedUnacknowledgedTransfers,
+            'warehouseTaskTransfers' => $warehouseTaskTransfers,
         ]);
     }
 
@@ -103,11 +110,25 @@ class TenantStockTransferController extends Controller
             ->latest()
             ->get();
 
+        $shopTaskTransfers = $this->markTaskTransfers($incomingTransfers, 'Incoming To Receive', 'shop_incoming', 'bg-blue-100 text-blue-800')
+            ->concat($this->markTaskTransfers($requestedByShopTransfers, 'Waiting Warehouse', 'shop_waiting', 'bg-yellow-100 text-yellow-800'))
+            ->values();
+
         return view('tenant.inventory.transfers.shop-tasks', [
             'tenant' => $tenant,
             'incomingTransfers' => $incomingTransfers,
             'requestedByShopTransfers' => $requestedByShopTransfers,
+            'shopTaskTransfers' => $shopTaskTransfers,
         ]);
+    }
+
+    private function markTaskTransfers($transfers, string $label, string $actionType, string $badgeClass)
+    {
+        return $transfers->each(function (StockTransfer $transfer) use ($label, $actionType, $badgeClass): void {
+            $transfer->setAttribute('task_status_label', $label);
+            $transfer->setAttribute('task_action_type', $actionType);
+            $transfer->setAttribute('task_badge_class', $badgeClass);
+        });
     }
 
     public function create(Tenant $tenant): View
