@@ -129,6 +129,46 @@
                 </div>
             </div>
 
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 mb-3">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h4 class="font-bold">Pair Mobile Phone Scanner</h4>
+                        <p class="text-sm text-slate-500">Use a logged-in phone from this shop to scan products into this POS screen.</p>
+                    </div>
+
+                    <button type="button" id="startMobileScannerBtn" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold">
+                        Start Pairing
+                    </button>
+                </div>
+
+                <div id="mobileScannerPanel" class="hidden mt-4 rounded-lg border border-slate-200 bg-white p-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                        <div>
+                            <div class="text-xs uppercase tracking-wide text-slate-500 font-semibold">Pairing Code</div>
+                            <div id="mobilePairCode" class="mt-1 text-3xl font-bold tracking-widest text-slate-900">------</div>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <div class="text-xs uppercase tracking-wide text-slate-500 font-semibold">Phone URL</div>
+                            <div class="mt-1 flex flex-wrap gap-2">
+                                <a href="{{ route('tenant.mobile-scanner.index', $tenant) }}" target="_blank" id="mobileScannerLink" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold">
+                                    Open Scanner
+                                </a>
+                                <button type="button" id="copyMobileScannerLinkBtn" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold">
+                                    Copy Link
+                                </button>
+                                <button type="button" id="closeMobileScannerBtn" class="px-3 py-2 rounded-lg bg-red-50 text-red-700 text-sm font-semibold">
+                                    Stop Pairing
+                                </button>
+                            </div>
+                            <div id="mobileScannerStatus" class="mt-2 text-sm text-slate-500">
+                                Open the scanner link on your phone, or open Mobile Scanner from the ERP menu and enter this code.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <datalist id="productOptions">
                 @foreach($products as $product)
                     <option value="{{ $product->name }} — {{ $product->sku }}"></option>
@@ -291,6 +331,9 @@
         const currencySymbol = @json($currencySymbol);
         const currencyPosition = @json($currencyPosition);
         const taxPercent = Number(@json((float) ($settings['tax_percent'] ?? 0)));
+        const mobileScannerSessionUrl = @json(route('tenant.mobile-scanner.sessions.store', $tenant));
+        const mobileScannerIndexUrl = @json(route('tenant.mobile-scanner.index', $tenant));
+        const csrfToken = @json(csrf_token());
 
         const productByLabel = {};
         const productLabelById = {};
@@ -334,9 +377,18 @@
         const paidInput = document.getElementById('paidAmount');
         const barcodeScanInput = document.getElementById('barcodeScanInput');
         const scanFeedback = document.getElementById('scanFeedback');
+        const startMobileScannerBtn = document.getElementById('startMobileScannerBtn');
+        const mobileScannerPanel = document.getElementById('mobileScannerPanel');
+        const mobilePairCode = document.getElementById('mobilePairCode');
+        const mobileScannerLink = document.getElementById('mobileScannerLink');
+        const copyMobileScannerLinkBtn = document.getElementById('copyMobileScannerLinkBtn');
+        const closeMobileScannerBtn = document.getElementById('closeMobileScannerBtn');
+        const mobileScannerStatus = document.getElementById('mobileScannerStatus');
 
         const customerSearch = document.getElementById('customerSearch');
         const customerId = document.getElementById('customerId');
+        let mobileScannerSession = null;
+        let mobileScannerPollTimer = null;
 
         function money(amount) {
             const formatted = Number(amount || 0).toLocaleString(undefined, {
@@ -540,6 +592,151 @@
             setScanFeedback(`Added ${product.name}`, 'success');
             this.value = '';
             this.focus();
+        });
+
+        function setMobileScannerStatus(message, tone = 'neutral') {
+            mobileScannerStatus.textContent = message;
+            mobileScannerStatus.classList.remove('text-slate-500', 'text-green-700', 'text-red-700');
+            mobileScannerStatus.classList.add(tone === 'success' ? 'text-green-700' : tone === 'error' ? 'text-red-700' : 'text-slate-500');
+        }
+
+        async function startMobileScannerSession() {
+            startMobileScannerBtn.disabled = true;
+            startMobileScannerBtn.textContent = 'Starting...';
+
+            try {
+                const response = await fetch(mobileScannerSessionUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({ name: `POS ${new Date().toLocaleTimeString()}` }),
+                });
+
+                const payload = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(payload.message || 'Could not start mobile scanner.');
+                }
+
+                mobileScannerSession = payload;
+                mobilePairCode.textContent = payload.pair_code;
+                mobileScannerLink.href = payload.mobile_url || mobileScannerIndexUrl;
+                mobileScannerPanel.classList.remove('hidden');
+                setMobileScannerStatus('Waiting for phone scans...', 'success');
+                startMobileScannerPolling();
+            } catch (error) {
+                setMobileScannerStatus(error.message || 'Could not start mobile scanner.', 'error');
+            } finally {
+                startMobileScannerBtn.disabled = false;
+                startMobileScannerBtn.textContent = 'Restart Pairing';
+            }
+        }
+
+        function startMobileScannerPolling() {
+            if (mobileScannerPollTimer) {
+                clearInterval(mobileScannerPollTimer);
+            }
+
+            pollMobileScanner();
+            mobileScannerPollTimer = setInterval(pollMobileScanner, 1200);
+        }
+
+        async function pollMobileScanner() {
+            if (!mobileScannerSession?.poll_url) {
+                return;
+            }
+
+            try {
+                const response = await fetch(mobileScannerSession.poll_url, {
+                    headers: { 'Accept': 'application/json' },
+                });
+
+                const payload = await response.json();
+
+                if (!response.ok || !payload.active) {
+                    stopMobileScannerPolling(false);
+                    setMobileScannerStatus(payload.message || 'Mobile scanner pairing ended.', 'error');
+                    return;
+                }
+
+                (payload.scans || []).forEach(handleMobileScannerScan);
+            } catch (error) {
+                setMobileScannerStatus('Waiting for mobile scanner connection...', 'neutral');
+            }
+        }
+
+        function handleMobileScannerScan(scan) {
+            const product = scan.product_id && products[scan.product_id]
+                ? products[scan.product_id]
+                : productByScanCode[normalizeScanCode(scan.code)];
+
+            if (!product) {
+                setScanFeedback(`Mobile scan not found: ${scan.code}`, 'error');
+                setMobileScannerStatus(`No product matched ${scan.code}`, 'error');
+                return;
+            }
+
+            const quantity = Math.max(1, Number(scan.quantity || 1));
+
+            for (let i = 0; i < quantity; i++) {
+                addScannedProduct(product);
+            }
+
+            setScanFeedback(`Mobile: Added ${product.name}`, 'success');
+            setMobileScannerStatus(`Last scan: ${product.name}`, 'success');
+        }
+
+        async function closeMobileScannerSession() {
+            if (!mobileScannerSession?.close_url) {
+                stopMobileScannerPolling();
+                return;
+            }
+
+            try {
+                await fetch(mobileScannerSession.close_url, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                });
+            } finally {
+                stopMobileScannerPolling();
+            }
+        }
+
+        function stopMobileScannerPolling(hidePanel = true) {
+            if (mobileScannerPollTimer) {
+                clearInterval(mobileScannerPollTimer);
+                mobileScannerPollTimer = null;
+            }
+
+            mobileScannerSession = null;
+
+            if (hidePanel) {
+                mobileScannerPanel.classList.add('hidden');
+                mobilePairCode.textContent = '------';
+                mobileScannerLink.href = mobileScannerIndexUrl;
+            }
+
+            startMobileScannerBtn.textContent = 'Start Pairing';
+        }
+
+        startMobileScannerBtn.addEventListener('click', startMobileScannerSession);
+        closeMobileScannerBtn.addEventListener('click', closeMobileScannerSession);
+
+        copyMobileScannerLinkBtn.addEventListener('click', async function () {
+            const link = mobileScannerLink.href;
+
+            try {
+                await navigator.clipboard.writeText(link);
+                setMobileScannerStatus('Scanner link copied.', 'success');
+            } catch (error) {
+                setMobileScannerStatus('Copy failed. Open the link and share it manually.', 'error');
+            }
         });
 
         addItemBtn.addEventListener('click', () => addItemRow());

@@ -143,6 +143,10 @@
                             Invoices
                         </a>
 
+                        <a href="{{ route('tenant.mobile-scanner.index', $tenant) }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.mobile-scanner.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
+                            Mobile Scanner
+                        </a>
+
                         <a href="{{ route('tenant.after-sales.index', $tenant) }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.after-sales.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
                             Returns & Warranty
                         </a>

@@ -18,6 +18,7 @@ use App\Tenant\Http\Controllers\Inventory\TenantStockTransferController;
 use App\Tenant\Http\Controllers\Purchasing\TenantPurchaseController;
 use App\Tenant\Http\Controllers\Purchasing\TenantSupplierController;
 use App\Tenant\Http\Controllers\Sales\TenantAfterSalesController;
+use App\Tenant\Http\Controllers\Sales\TenantMobileScannerController;
 use App\Tenant\Http\Controllers\Sales\TenantSalesController;
 use App\Tenant\Http\Controllers\Settings\TenantShopSettingController;
 use App\Tenant\Http\Controllers\Settings\TenantUserController;
@@ -110,6 +111,13 @@ Route::prefix('shop/{tenant:slug}')->group(function (): void {
 
         Route::get('/pos', [TenantSalesController::class, 'pos'])->name('tenant.pos.create');
         Route::post('/pos', [TenantSalesController::class, 'storeInvoice'])->name('tenant.pos.store');
+        Route::get('/mobile-scanner', [TenantMobileScannerController::class, 'index'])->name('tenant.mobile-scanner.index');
+        Route::post('/mobile-scanner/connect', [TenantMobileScannerController::class, 'connect'])->name('tenant.mobile-scanner.connect');
+        Route::get('/mobile-scanner/{token}', [TenantMobileScannerController::class, 'show'])->name('tenant.mobile-scanner.show');
+        Route::post('/mobile-scanner/sessions', [TenantMobileScannerController::class, 'storeSession'])->name('tenant.mobile-scanner.sessions.store');
+        Route::get('/mobile-scanner/sessions/{token}/poll', [TenantMobileScannerController::class, 'poll'])->name('tenant.mobile-scanner.sessions.poll');
+        Route::post('/mobile-scanner/sessions/{token}/close', [TenantMobileScannerController::class, 'close'])->name('tenant.mobile-scanner.sessions.close');
+        Route::post('/mobile-scanner/{token}/scans', [TenantMobileScannerController::class, 'storeScan'])->name('tenant.mobile-scanner.scans.store');
 
         Route::get('/invoices', [TenantSalesController::class, 'invoices'])->name('tenant.invoices.index');
         Route::get('/invoices/{invoiceId}/pdf', [TenantSalesController::class, 'downloadInvoicePdf'])->name('tenant.invoices.pdf');
