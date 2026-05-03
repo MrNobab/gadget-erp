@@ -117,6 +117,7 @@ Route::prefix('shop/{tenant:slug}')->group(function (): void {
         Route::post('/mobile-scanner/sessions', [TenantMobileScannerController::class, 'storeSession'])->name('tenant.mobile-scanner.sessions.store');
         Route::get('/mobile-scanner/sessions/{token}/poll', [TenantMobileScannerController::class, 'poll'])->name('tenant.mobile-scanner.sessions.poll');
         Route::post('/mobile-scanner/sessions/{token}/close', [TenantMobileScannerController::class, 'close'])->name('tenant.mobile-scanner.sessions.close');
+        Route::post('/mobile-scanner/codes/assign', [TenantMobileScannerController::class, 'assignCode'])->name('tenant.mobile-scanner.codes.assign');
         Route::post('/mobile-scanner/{token}/scans', [TenantMobileScannerController::class, 'storeScan'])->name('tenant.mobile-scanner.scans.store');
 
         Route::get('/invoices', [TenantSalesController::class, 'invoices'])->name('tenant.invoices.index');

@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -118,13 +119,7 @@ class TenantMobileScannerController extends Controller
                 'code' => $scan->code,
                 'quantity' => $scan->quantity,
                 'product_id' => $scan->product_id,
-                'product' => $scan->product ? [
-                    'id' => $scan->product->id,
-                    'name' => $scan->product->name,
-                    'sku' => $scan->product->sku,
-                    'barcode' => $scan->product->barcode,
-                    'sale_price' => (float) $scan->product->sale_price,
-                ] : null,
+                'product' => $scan->product ? $this->productPayload($scan->product) : null,
             ])->values(),
         ]);
     }
@@ -164,12 +159,7 @@ class TenantMobileScannerController extends Controller
             'ok' => true,
             'found' => (bool) $product,
             'message' => $product ? 'Scanned ' . $product->name : 'Code sent, but no product matched this barcode.',
-            'product' => $product ? [
-                'id' => $product->id,
-                'name' => $product->name,
-                'sku' => $product->sku,
-                'barcode' => $product->barcode,
-            ] : null,
+            'product' => $product ? $this->productPayload($product) : null,
         ]);
     }
 
@@ -189,6 +179,48 @@ class TenantMobileScannerController extends Controller
         ]);
 
         return response()->json(['ok' => true]);
+    }
+
+    public function assignCode(Request $request, Tenant $tenant): JsonResponse
+    {
+        $validated = $request->validate([
+            'code' => ['required', 'string', 'max:150'],
+            'product_id' => [
+                'required',
+                'integer',
+                Rule::exists('products', 'id')->where('tenant_id', $tenant->id),
+            ],
+        ]);
+
+        $code = trim($validated['code']);
+        $product = Product::query()
+            ->whereKey((int) $validated['product_id'])
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        $variants = $this->scanCodeVariants($code);
+        $existing = Product::query()
+            ->whereKeyNot($product->id)
+            ->where(function ($query) use ($variants): void {
+                $query->whereIn('barcode', $variants)
+                    ->orWhereIn('sku', $variants);
+            })
+            ->first();
+
+        if ($existing && (int) $existing->id !== (int) $product->id) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'This barcode is already assigned to ' . $existing->name . '.',
+            ], 422);
+        }
+
+        $product->update(['barcode' => $code]);
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Barcode linked to ' . $product->name . '.',
+            'product' => $this->productPayload($product->fresh()),
+        ]);
     }
 
     private function findUsableSessionByToken(string $token): ?MobileScannerSession
@@ -211,13 +243,46 @@ class TenantMobileScannerController extends Controller
 
     private function findProductByScanCode(string $code): ?Product
     {
+        $variants = $this->scanCodeVariants($code);
+
         return Product::query()
             ->where('is_active', true)
-            ->where(function ($query) use ($code): void {
-                $query->where('barcode', $code)
-                    ->orWhere('sku', $code);
+            ->where(function ($query) use ($variants): void {
+                $query->whereIn('barcode', $variants)
+                    ->orWhereIn('sku', $variants);
             })
             ->first();
+    }
+
+    private function scanCodeVariants(string $code): array
+    {
+        $raw = trim($code);
+        $compact = preg_replace('/[^A-Za-z0-9]/', '', $raw) ?: $raw;
+        $variants = [$raw, $compact];
+
+        if (ctype_digit($compact)) {
+            if (strlen($compact) === 12) {
+                $variants[] = '0' . $compact;
+            }
+
+            if (strlen($compact) === 13 && str_starts_with($compact, '0')) {
+                $variants[] = substr($compact, 1);
+            }
+        }
+
+        return array_values(array_unique(array_filter($variants, fn (string $variant): bool => $variant !== '')));
+    }
+
+    private function productPayload(Product $product): array
+    {
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'sku' => $product->sku,
+            'barcode' => $product->barcode,
+            'scan_code' => $product->barcodeValue(),
+            'sale_price' => (float) $product->sale_price,
+        ];
     }
 
     private function freshPairCode(): string

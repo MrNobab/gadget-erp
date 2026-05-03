@@ -55,9 +55,9 @@
                                 <div class="text-xs text-slate-500">SKU: {{ $product->sku }}</div>
                             </td>
                             <td class="px-4 py-3">
-                                <div class="font-mono text-sm">{{ $product->barcodeValue() }}</div>
+                                <div class="font-mono text-sm">{{ $product->barcode ?: 'Will generate on print' }}</div>
                                 @if(! $product->barcode)
-                                    <div class="text-xs text-amber-700">Using SKU as barcode</div>
+                                    <div class="text-xs text-amber-700">ERP barcode will be saved automatically.</div>
                                 @endif
                             </td>
                             <td class="px-4 py-3">{{ nxpbd_money($product->sale_price, $tenant) }}</td>

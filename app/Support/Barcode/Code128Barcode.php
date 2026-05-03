@@ -5,6 +5,7 @@ namespace App\Support\Barcode;
 class Code128Barcode
 {
     private const START_B = 104;
+    private const START_C = 105;
     private const STOP = 106;
 
     private const PATTERNS = [
@@ -76,6 +77,10 @@ class Code128Barcode
 
     private function codes(string $value): array
     {
+        if (ctype_digit($value) && strlen($value) % 2 === 0) {
+            return $this->codesForNumericPairs($value);
+        }
+
         $codes = [self::START_B];
         $checksum = self::START_B;
 
@@ -83,6 +88,25 @@ class Code128Barcode
             $code = ord($character) - 32;
             $codes[] = $code;
             $checksum += $code * ($position + 1);
+        }
+
+        $codes[] = $checksum % 103;
+        $codes[] = self::STOP;
+
+        return $codes;
+    }
+
+    private function codesForNumericPairs(string $value): array
+    {
+        $codes = [self::START_C];
+        $checksum = self::START_C;
+        $position = 1;
+
+        foreach (str_split($value, 2) as $pair) {
+            $code = (int) $pair;
+            $codes[] = $code;
+            $checksum += $code * $position;
+            $position++;
         }
 
         $codes[] = $checksum % 103;

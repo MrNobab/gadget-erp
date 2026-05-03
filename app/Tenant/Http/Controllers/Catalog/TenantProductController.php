@@ -5,6 +5,7 @@ namespace App\Tenant\Http\Controllers\Catalog;
 use App\Domain\Catalog\Models\Brand;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
+use App\Domain\Catalog\Services\ProductBarcodeService;
 use App\Http\Controllers\Controller;
 use App\Platform\Models\Tenant;
 use App\Support\Barcode\Code128Barcode;
@@ -85,8 +86,12 @@ class TenantProductController extends Controller
         ]);
     }
 
-    public function printBarcodeLabels(Request $request, Tenant $tenant, Code128Barcode $barcodeRenderer): View|RedirectResponse
-    {
+    public function printBarcodeLabels(
+        Request $request,
+        Tenant $tenant,
+        Code128Barcode $barcodeRenderer,
+        ProductBarcodeService $productBarcodeService
+    ): View|RedirectResponse {
         $validated = $request->validate([
             'products' => ['required', 'array'],
             'products.*.product_id' => [
@@ -112,6 +117,7 @@ class TenantProductController extends Controller
         $products = Product::query()
             ->whereIn('id', $rows->pluck('product_id'))
             ->get()
+            ->map(fn (Product $product): Product => $productBarcodeService->ensure($product))
             ->keyBy('id');
 
         return view('tenant.catalog.products.barcodes.print', [
@@ -121,11 +127,12 @@ class TenantProductController extends Controller
         ]);
     }
 
-    public function store(Request $request, Tenant $tenant): RedirectResponse
+    public function store(Request $request, Tenant $tenant, ProductBarcodeService $productBarcodeService): RedirectResponse
     {
         $validated = $this->validatedData($request);
 
-        Product::query()->create($validated);
+        $product = Product::query()->create($validated);
+        $productBarcodeService->ensure($product);
 
         return redirect()
             ->route('tenant.products.index', $tenant)
@@ -144,13 +151,14 @@ class TenantProductController extends Controller
         ]);
     }
 
-    public function update(Request $request, Tenant $tenant, int $productId): RedirectResponse
+    public function update(Request $request, Tenant $tenant, int $productId, ProductBarcodeService $productBarcodeService): RedirectResponse
     {
         $product = Product::query()->findOrFail($productId);
 
         $validated = $this->validatedData($request, $product->id);
 
         $product->update($validated);
+        $productBarcodeService->ensure($product);
 
         return redirect()
             ->route('tenant.products.index', $tenant)

@@ -169,9 +169,39 @@
                 </div>
             </div>
 
+            <div id="unknownScanPanel" class="hidden rounded-xl border border-amber-200 bg-amber-50 p-4 mb-3">
+                <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
+                    <div>
+                        <h4 class="font-bold text-amber-950">Unknown Barcode</h4>
+                        <p class="text-sm text-amber-800">
+                            Code <span id="unknownScanCode" class="font-mono font-bold"></span> is not linked to any active product yet.
+                        </p>
+                    </div>
+
+                    <button type="button" id="ignoreUnknownScanBtn" class="px-3 py-2 rounded-lg bg-amber-100 text-amber-900 text-sm font-semibold">
+                        Ignore
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                    <div class="md:col-span-3">
+                        <label class="block text-sm font-medium text-amber-950">Link this barcode to product</label>
+                        <input type="text" id="unknownScanProductSearch" list="productOptions" placeholder="Search product name or SKU..." class="mt-1 w-full rounded-lg border border-amber-300 px-3 py-2">
+                    </div>
+
+                    <button type="button" id="linkUnknownScanBtn" class="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-semibold">
+                        Link & Add
+                    </button>
+                </div>
+
+                <div id="unknownScanStatus" class="mt-2 text-sm text-amber-800">
+                    This saves the barcode on the product, then future scans will add it automatically.
+                </div>
+            </div>
+
             <datalist id="productOptions">
                 @foreach($products as $product)
-                    <option value="{{ $product->name }} — {{ $product->sku }}"></option>
+                    <option value="{{ $product->name }} - {{ $product->sku }}"></option>
                     @if($product->barcode)
                         <option value="{{ $product->barcode }}"></option>
                     @endif
@@ -333,6 +363,7 @@
         const taxPercent = Number(@json((float) ($settings['tax_percent'] ?? 0)));
         const mobileScannerSessionUrl = @json(route('tenant.mobile-scanner.sessions.store', $tenant));
         const mobileScannerIndexUrl = @json(route('tenant.mobile-scanner.index', $tenant));
+        const mobileScannerAssignCodeUrl = @json(route('tenant.mobile-scanner.codes.assign', $tenant));
         const csrfToken = @json(csrf_token());
 
         const productByLabel = {};
@@ -343,19 +374,56 @@
             return String(value || '').trim().toLowerCase();
         }
 
-        Object.values(products).forEach(product => {
-            const label = `${product.name} — ${product.sku}`;
+        function scanCodeVariants(value) {
+            const raw = String(value || '').trim();
+            const compact = raw.replace(/[^A-Za-z0-9]/g, '');
+            const variants = [raw, compact];
+
+            if (/^\d+$/.test(compact)) {
+                if (compact.length === 12) {
+                    variants.push(`0${compact}`);
+                }
+
+                if (compact.length === 13 && compact.startsWith('0')) {
+                    variants.push(compact.substring(1));
+                }
+            }
+
+            return [...new Set(variants.filter(Boolean))];
+        }
+
+        function registerProduct(product) {
+            const label = `${product.name} - ${product.sku}`;
+            products[product.id] = product;
             productByLabel[label] = product;
             productLabelById[product.id] = label;
 
             [product.sku, product.barcode, product.scan_code].forEach(code => {
-                const normalized = normalizeScanCode(code);
+                scanCodeVariants(code).forEach(variant => {
+                    const normalized = normalizeScanCode(variant);
 
-                if (normalized) {
-                    productByScanCode[normalized] = product;
-                    productByLabel[code] = product;
-                }
+                    if (normalized) {
+                        productByScanCode[normalized] = product;
+                        productByLabel[variant] = product;
+                    }
+                });
             });
+        }
+
+        function findProductByScanCode(code) {
+            for (const variant of scanCodeVariants(code)) {
+                const product = productByScanCode[normalizeScanCode(variant)];
+
+                if (product) {
+                    return product;
+                }
+            }
+
+            return null;
+        }
+
+        Object.values(products).forEach(product => {
+            registerProduct(product);
         });
 
         const customerByLabel = {};
@@ -384,11 +452,18 @@
         const copyMobileScannerLinkBtn = document.getElementById('copyMobileScannerLinkBtn');
         const closeMobileScannerBtn = document.getElementById('closeMobileScannerBtn');
         const mobileScannerStatus = document.getElementById('mobileScannerStatus');
+        const unknownScanPanel = document.getElementById('unknownScanPanel');
+        const unknownScanCode = document.getElementById('unknownScanCode');
+        const unknownScanProductSearch = document.getElementById('unknownScanProductSearch');
+        const linkUnknownScanBtn = document.getElementById('linkUnknownScanBtn');
+        const ignoreUnknownScanBtn = document.getElementById('ignoreUnknownScanBtn');
+        const unknownScanStatus = document.getElementById('unknownScanStatus');
 
         const customerSearch = document.getElementById('customerSearch');
         const customerId = document.getElementById('customerId');
         let mobileScannerSession = null;
         let mobileScannerPollTimer = null;
+        let pendingUnknownScanCode = '';
 
         function money(amount) {
             const formatted = Number(amount || 0).toLocaleString(undefined, {
@@ -447,7 +522,7 @@
 
             function fillProductDetails(forcePrice = true) {
                 const product = productByLabel[productSearchInput.value]
-                    || productByScanCode[normalizeScanCode(productSearchInput.value)];
+                    || findProductByScanCode(productSearchInput.value);
 
                 if (!product) {
                     productIdInput.value = '';
@@ -572,6 +647,31 @@
             });
         }
 
+        function showUnknownScanPanel(code) {
+            pendingUnknownScanCode = String(code || '').trim();
+            unknownScanCode.textContent = pendingUnknownScanCode;
+            unknownScanProductSearch.value = '';
+            unknownScanStatus.textContent = 'This saves the barcode on the product, then future scans will add it automatically.';
+            unknownScanStatus.className = 'mt-2 text-sm text-amber-800';
+            unknownScanPanel.classList.remove('hidden');
+        }
+
+        function hideUnknownScanPanel() {
+            pendingUnknownScanCode = '';
+            unknownScanPanel.classList.add('hidden');
+            unknownScanCode.textContent = '';
+            unknownScanProductSearch.value = '';
+        }
+
+        function setUnknownScanStatus(message, tone = 'neutral') {
+            unknownScanStatus.textContent = message;
+            unknownScanStatus.className = tone === 'error'
+                ? 'mt-2 text-sm text-red-700'
+                : tone === 'success'
+                    ? 'mt-2 text-sm text-green-700'
+                    : 'mt-2 text-sm text-amber-800';
+        }
+
         barcodeScanInput.addEventListener('keydown', function (event) {
             if (event.key !== 'Enter') {
                 return;
@@ -579,11 +679,12 @@
 
             event.preventDefault();
 
-            const code = normalizeScanCode(this.value);
-            const product = productByScanCode[code];
+            const rawCode = this.value.trim();
+            const product = findProductByScanCode(this.value);
 
             if (!product) {
-                setScanFeedback('No product found for this code.', 'error');
+                setScanFeedback(`No product found: ${rawCode}`, 'error');
+                showUnknownScanPanel(rawCode);
                 this.select();
                 return;
             }
@@ -593,6 +694,59 @@
             this.value = '';
             this.focus();
         });
+
+        linkUnknownScanBtn.addEventListener('click', async function () {
+            const product = productByLabel[unknownScanProductSearch.value]
+                || findProductByScanCode(unknownScanProductSearch.value);
+
+            if (!pendingUnknownScanCode) {
+                setUnknownScanStatus('No scanned code is waiting to be linked.', 'error');
+                return;
+            }
+
+            if (!product) {
+                setUnknownScanStatus('Select a product from the suggestions first.', 'error');
+                return;
+            }
+
+            linkUnknownScanBtn.disabled = true;
+            linkUnknownScanBtn.textContent = 'Linking...';
+
+            try {
+                const response = await fetch(mobileScannerAssignCodeUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({
+                        code: pendingUnknownScanCode,
+                        product_id: product.id,
+                    }),
+                });
+
+                const payload = await response.json();
+
+                if (!response.ok || !payload.ok) {
+                    setUnknownScanStatus(payload.message || 'Could not link this barcode.', 'error');
+                    return;
+                }
+
+                registerProduct(payload.product);
+                addScannedProduct(payload.product);
+                setScanFeedback(`Linked and added ${payload.product.name}`, 'success');
+                setUnknownScanStatus(payload.message || 'Barcode linked.', 'success');
+                hideUnknownScanPanel();
+            } catch (error) {
+                setUnknownScanStatus('Network error while linking barcode.', 'error');
+            } finally {
+                linkUnknownScanBtn.disabled = false;
+                linkUnknownScanBtn.textContent = 'Link & Add';
+            }
+        });
+
+        ignoreUnknownScanBtn.addEventListener('click', hideUnknownScanPanel);
 
         function setMobileScannerStatus(message, tone = 'neutral') {
             mobileScannerStatus.textContent = message;
@@ -671,11 +825,12 @@
         function handleMobileScannerScan(scan) {
             const product = scan.product_id && products[scan.product_id]
                 ? products[scan.product_id]
-                : productByScanCode[normalizeScanCode(scan.code)];
+                : findProductByScanCode(scan.code);
 
             if (!product) {
                 setScanFeedback(`Mobile scan not found: ${scan.code}`, 'error');
                 setMobileScannerStatus(`No product matched ${scan.code}`, 'error');
+                showUnknownScanPanel(scan.code);
                 return;
             }
 

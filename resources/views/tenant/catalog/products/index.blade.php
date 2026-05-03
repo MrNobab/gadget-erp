@@ -72,7 +72,7 @@
                         <td class="px-4 py-3">
                             <div class="font-semibold">{{ $product->name }}</div>
                             <div class="text-xs text-slate-500">SKU: {{ $product->sku }}</div>
-                            <div class="text-xs text-slate-500">Barcode: {{ $product->barcode ?: $product->sku }}</div>
+                            <div class="text-xs text-slate-500">Barcode: {{ $product->barcode ?: 'Will generate on print' }}</div>
                         </td>
                         <td class="px-4 py-3">{{ $product->category?->name ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $product->brand?->name ?? '-' }}</td>
