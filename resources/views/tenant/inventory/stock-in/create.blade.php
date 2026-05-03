@@ -12,6 +12,9 @@
         <datalist id="productOptions">
             @foreach($products as $product)
                 <option value="{{ $product->name }} — {{ $product->sku }}"></option>
+                @if($product->barcode)
+                    <option value="{{ $product->barcode }}"></option>
+                @endif
             @endforeach
         </datalist>
 
@@ -30,7 +33,7 @@
 
             <div>
                 <label class="block text-sm font-medium text-slate-700">Search Product</label>
-                <input type="text" id="productSearch" list="productOptions" placeholder="Type product name or SKU..." class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+                <input type="text" id="productSearch" list="productOptions" placeholder="Scan barcode or type product name / SKU..." class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
                 <input type="hidden" name="product_id" id="productId" value="{{ old('product_id') }}">
                 <p class="mt-1 text-xs text-slate-500">Select a product from the suggestions.</p>
             </div>
@@ -99,22 +102,39 @@
     <script>
         const products = @json($products->map(fn ($product) => [
             'id' => $product->id,
+            'sku' => $product->sku,
+            'barcode' => $product->barcode,
+            'scan_code' => $product->barcodeValue(),
             'label' => $product->name . ' — ' . $product->sku,
         ])->values());
 
         const productByLabel = {};
         const productLabelById = {};
+        const productByScanCode = {};
+
+        function normalizeScanCode(value) {
+            return String(value || '').trim().toLowerCase();
+        }
 
         products.forEach(product => {
             productByLabel[product.label] = product.id;
             productLabelById[product.id] = product.label;
+
+            [product.sku, product.barcode, product.scan_code].forEach(code => {
+                const normalized = normalizeScanCode(code);
+
+                if (normalized) {
+                    productByScanCode[normalized] = product.id;
+                    productByLabel[code] = product.id;
+                }
+            });
         });
 
         const productSearch = document.getElementById('productSearch');
         const productId = document.getElementById('productId');
 
         productSearch.addEventListener('input', function () {
-            productId.value = productByLabel[this.value] || '';
+            productId.value = productByLabel[this.value] || productByScanCode[normalizeScanCode(this.value)] || '';
         });
 
         if (productId.value && productLabelById[productId.value]) {

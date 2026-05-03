@@ -17,6 +17,7 @@ class Product extends TenantModel
         'brand_id',
         'name',
         'sku',
+        'barcode',
         'description',
         'cost_price',
         'sale_price',
@@ -59,5 +60,10 @@ class Product extends TenantModel
     public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class);
+    }
+
+    public function barcodeValue(): string
+    {
+        return trim((string) ($this->barcode ?: $this->sku));
     }
 }

@@ -7,14 +7,20 @@
             <p class="text-slate-500">Manage product catalog without image uploads.</p>
         </div>
 
-        <a href="{{ route('tenant.products.create', $tenant) }}" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold">
-            Add Product
-        </a>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ route('tenant.products.barcode-labels.index', $tenant) }}" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold">
+                Barcode Labels
+            </a>
+
+            <a href="{{ route('tenant.products.create', $tenant) }}" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold">
+                Add Product
+            </a>
+        </div>
     </div>
 
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-4">
         <form method="GET" action="{{ route('tenant.products.index', $tenant) }}" class="grid grid-cols-1 md:grid-cols-5 gap-3">
-            <input type="text" name="search" value="{{ $search }}" placeholder="Search name or SKU..." class="rounded-lg border border-slate-300 px-3 py-2">
+            <input type="text" name="search" value="{{ $search }}" placeholder="Search name, SKU, or barcode..." class="rounded-lg border border-slate-300 px-3 py-2">
 
             <select name="category_id" class="rounded-lg border border-slate-300 px-3 py-2">
                 <option value="">All Categories</option>
@@ -66,6 +72,7 @@
                         <td class="px-4 py-3">
                             <div class="font-semibold">{{ $product->name }}</div>
                             <div class="text-xs text-slate-500">SKU: {{ $product->sku }}</div>
+                            <div class="text-xs text-slate-500">Barcode: {{ $product->barcode ?: $product->sku }}</div>
                         </td>
                         <td class="px-4 py-3">{{ $product->category?->name ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $product->brand?->name ?? '-' }}</td>
@@ -83,6 +90,10 @@
                             <div class="flex items-center gap-3">
                                 <a href="{{ route('tenant.products.edit', [$tenant, $product->id]) }}" class="font-semibold text-slate-900 hover:underline">
                                     Edit
+                                </a>
+
+                                <a href="{{ route('tenant.products.barcode-labels.index', [$tenant, 'search' => $product->barcode ?: $product->sku]) }}" class="font-semibold text-slate-900 hover:underline">
+                                    Labels
                                 </a>
 
                                 <form method="POST" action="{{ route('tenant.products.destroy', [$tenant, $product->id]) }}" onsubmit="return confirm('Delete this product?')">

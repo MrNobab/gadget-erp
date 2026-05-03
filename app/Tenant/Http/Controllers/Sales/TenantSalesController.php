@@ -55,6 +55,8 @@ class TenantSalesController extends Controller
                         'id' => $product->id,
                         'name' => $product->name,
                         'sku' => $product->sku,
+                        'barcode' => $product->barcode,
+                        'scan_code' => $product->barcodeValue(),
                         'sale_price' => (float) $product->sale_price,
                     ],
                 ];

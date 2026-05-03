@@ -20,7 +20,7 @@
 
     <div class="mb-6">
         <h2 class="text-2xl font-bold">POS / New Invoice</h2>
-        <p class="text-slate-500">Search customers and products by typing name, phone, or SKU.</p>
+        <p class="text-slate-500">Search customers and scan products by barcode, SKU, or product name.</p>
     </div>
 
     <form method="POST" action="{{ route('tenant.pos.store', $tenant) }}" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6" id="posForm">
@@ -110,7 +110,7 @@
             <div class="flex items-center justify-between gap-4 mb-3">
                 <div>
                     <h3 class="text-lg font-bold">Invoice Items</h3>
-                    <p class="text-sm text-slate-500">Search product by name or SKU. Selling price is editable and saved with invoice.</p>
+                    <p class="text-sm text-slate-500">Scan barcode or SKU, or search product by name. Selling price is editable.</p>
                 </div>
 
                 <button type="button" id="addItemBtn" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold">
@@ -118,9 +118,23 @@
                 </button>
             </div>
 
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3">
+                <div class="lg:col-span-2">
+                    <label class="block text-sm font-medium text-slate-700">Barcode Scanner</label>
+                    <input type="text" id="barcodeScanInput" autocomplete="off" placeholder="Scan barcode or type SKU, then press Enter..." class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+                </div>
+
+                <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600" id="scanFeedback">
+                    Scanner ready
+                </div>
+            </div>
+
             <datalist id="productOptions">
                 @foreach($products as $product)
                     <option value="{{ $product->name }} — {{ $product->sku }}"></option>
+                    @if($product->barcode)
+                        <option value="{{ $product->barcode }}"></option>
+                    @endif
                 @endforeach
             </datalist>
 
@@ -280,10 +294,25 @@
 
         const productByLabel = {};
         const productLabelById = {};
+        const productByScanCode = {};
+
+        function normalizeScanCode(value) {
+            return String(value || '').trim().toLowerCase();
+        }
+
         Object.values(products).forEach(product => {
             const label = `${product.name} — ${product.sku}`;
             productByLabel[label] = product;
             productLabelById[product.id] = label;
+
+            [product.sku, product.barcode, product.scan_code].forEach(code => {
+                const normalized = normalizeScanCode(code);
+
+                if (normalized) {
+                    productByScanCode[normalized] = product;
+                    productByLabel[code] = product;
+                }
+            });
         });
 
         const customerByLabel = {};
@@ -303,6 +332,8 @@
         const addItemBtn = document.getElementById('addItemBtn');
         const discountInput = document.getElementById('discountAmount');
         const paidInput = document.getElementById('paidAmount');
+        const barcodeScanInput = document.getElementById('barcodeScanInput');
+        const scanFeedback = document.getElementById('scanFeedback');
 
         const customerSearch = document.getElementById('customerSearch');
         const customerId = document.getElementById('customerId');
@@ -363,7 +394,8 @@
             priceInput.name = `items[${currentIndex}][unit_price]`;
 
             function fillProductDetails(forcePrice = true) {
-                const product = productByLabel[productSearchInput.value];
+                const product = productByLabel[productSearchInput.value]
+                    || productByScanCode[normalizeScanCode(productSearchInput.value)];
 
                 if (!product) {
                     productIdInput.value = '';
@@ -425,6 +457,8 @@
 
             updateNoItemsRow();
             calculateSummary();
+
+            return row;
         }
 
         function calculateSummary() {
@@ -450,6 +484,63 @@
             document.getElementById('paidPreview').textContent = money(paid);
             document.getElementById('duePreview').textContent = money(due);
         }
+
+        function setScanFeedback(message, tone = 'neutral') {
+            scanFeedback.textContent = message;
+            scanFeedback.classList.remove('bg-slate-50', 'text-slate-600', 'bg-green-50', 'text-green-700', 'bg-red-50', 'text-red-700');
+
+            if (tone === 'success') {
+                scanFeedback.classList.add('bg-green-50', 'text-green-700');
+                return;
+            }
+
+            if (tone === 'error') {
+                scanFeedback.classList.add('bg-red-50', 'text-red-700');
+                return;
+            }
+
+            scanFeedback.classList.add('bg-slate-50', 'text-slate-600');
+        }
+
+        function addScannedProduct(product) {
+            const existingRow = Array.from(itemsBody.querySelectorAll('tr[data-row="item"]'))
+                .find(row => row.querySelector('.product-id-input').value === String(product.id));
+
+            if (existingRow) {
+                const qtyInput = existingRow.querySelector('.qty-input');
+                qtyInput.value = Number(qtyInput.value || 0) + 1;
+                qtyInput.dispatchEvent(new Event('input'));
+                return;
+            }
+
+            addItemRow({
+                product_id: product.id,
+                quantity: 1,
+                unit_price: product.sale_price,
+            });
+        }
+
+        barcodeScanInput.addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter') {
+                return;
+            }
+
+            event.preventDefault();
+
+            const code = normalizeScanCode(this.value);
+            const product = productByScanCode[code];
+
+            if (!product) {
+                setScanFeedback('No product found for this code.', 'error');
+                this.select();
+                return;
+            }
+
+            addScannedProduct(product);
+            setScanFeedback(`Added ${product.name}`, 'success');
+            this.value = '';
+            this.focus();
+        });
 
         addItemBtn.addEventListener('click', () => addItemRow());
 

@@ -142,6 +142,8 @@ Route::prefix('shop/{tenant:slug}')->group(function (): void {
         Route::get('/products', [TenantProductController::class, 'index'])->name('tenant.products.index');
         Route::get('/products/create', [TenantProductController::class, 'create'])->name('tenant.products.create');
         Route::post('/products', [TenantProductController::class, 'store'])->name('tenant.products.store');
+        Route::get('/products/barcode-labels', [TenantProductController::class, 'barcodeLabels'])->name('tenant.products.barcode-labels.index');
+        Route::post('/products/barcode-labels/print', [TenantProductController::class, 'printBarcodeLabels'])->name('tenant.products.barcode-labels.print');
         Route::get('/products/{productId}/edit', [TenantProductController::class, 'edit'])->name('tenant.products.edit');
         Route::put('/products/{productId}', [TenantProductController::class, 'update'])->name('tenant.products.update');
         Route::delete('/products/{productId}', [TenantProductController::class, 'destroy'])->name('tenant.products.destroy');

@@ -14,6 +14,12 @@
     </div>
 
     <div>
+        <label class="block text-sm font-medium text-slate-700">Barcode / Scan Code</label>
+        <input type="text" name="barcode" value="{{ old('barcode', $product?->barcode) }}" placeholder="Optional - leave blank to use SKU" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+        <p class="mt-1 text-xs text-slate-500">Use the printed product barcode or your own internal barcode. POS will also scan SKU.</p>
+    </div>
+
+    <div>
         <label class="block text-sm font-medium text-slate-700">Category</label>
         <select name="category_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
             <option value="">No category</option>

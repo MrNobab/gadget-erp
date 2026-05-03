@@ -154,6 +154,7 @@
 
                             <div class="absolute z-20 mt-2 w-44 rounded-lg border border-slate-200 bg-white shadow-lg overflow-hidden">
                                 <a href="{{ route('tenant.products.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Products</a>
+                                <a href="{{ route('tenant.products.barcode-labels.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Barcode Labels</a>
                                 <a href="{{ route('tenant.categories.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Categories</a>
                                 <a href="{{ route('tenant.brands.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Brands</a>
                             </div>

@@ -7,9 +7,11 @@ use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
 use App\Http\Controllers\Controller;
 use App\Platform\Models\Tenant;
+use App\Support\Barcode\Code128Barcode;
 use App\Support\Services\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -27,7 +29,8 @@ class TenantProductController extends Controller
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($inner) use ($search): void {
                     $inner->where('name', 'like', '%' . $search . '%')
-                        ->orWhere('sku', 'like', '%' . $search . '%');
+                        ->orWhere('sku', 'like', '%' . $search . '%')
+                        ->orWhere('barcode', 'like', '%' . $search . '%');
                 });
             })
             ->when($categoryId, fn ($query) => $query->where('category_id', $categoryId))
@@ -56,6 +59,65 @@ class TenantProductController extends Controller
             'tenant' => $tenant,
             'categories' => Category::query()->where('is_active', true)->orderBy('name')->get(),
             'brands' => Brand::query()->where('is_active', true)->orderBy('name')->get(),
+        ]);
+    }
+
+    public function barcodeLabels(Request $request, Tenant $tenant): View
+    {
+        $search = trim((string) $request->query('search'));
+
+        $products = Product::query()
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($inner) use ($search): void {
+                    $inner->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('sku', 'like', '%' . $search . '%')
+                        ->orWhere('barcode', 'like', '%' . $search . '%');
+                });
+            })
+            ->orderBy('name')
+            ->paginate(30)
+            ->withQueryString();
+
+        return view('tenant.catalog.products.barcodes.index', [
+            'tenant' => $tenant,
+            'products' => $products,
+            'search' => $search,
+        ]);
+    }
+
+    public function printBarcodeLabels(Request $request, Tenant $tenant, Code128Barcode $barcodeRenderer): View|RedirectResponse
+    {
+        $validated = $request->validate([
+            'products' => ['required', 'array'],
+            'products.*.product_id' => [
+                'required',
+                'integer',
+                Rule::exists('products', 'id')->where('tenant_id', TenantContext::id()),
+            ],
+            'products.*.quantity' => ['nullable', 'integer', 'min:0', 'max:200'],
+        ]);
+
+        $rows = collect($validated['products'])
+            ->map(fn (array $row): array => [
+                'product_id' => (int) $row['product_id'],
+                'quantity' => (int) ($row['quantity'] ?? 0),
+            ])
+            ->filter(fn (array $row): bool => $row['quantity'] > 0)
+            ->values();
+
+        if ($rows->isEmpty()) {
+            return back()->withErrors(['products' => 'Enter at least one label quantity to print.']);
+        }
+
+        $products = Product::query()
+            ->whereIn('id', $rows->pluck('product_id'))
+            ->get()
+            ->keyBy('id');
+
+        return view('tenant.catalog.products.barcodes.print', [
+            'tenant' => $tenant,
+            'labels' => $this->labelRows($rows, $products),
+            'barcodeRenderer' => $barcodeRenderer,
         ]);
     }
 
@@ -108,7 +170,7 @@ class TenantProductController extends Controller
 
     private function validatedData(Request $request, ?int $productId = null): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'category_id' => [
                 'nullable',
                 'integer',
@@ -127,6 +189,21 @@ class TenantProductController extends Controller
                 Rule::unique('products', 'sku')
                     ->where('tenant_id', TenantContext::id())
                     ->ignore($productId),
+                Rule::unique('products', 'barcode')
+                    ->where('tenant_id', TenantContext::id())
+                    ->ignore($productId),
+            ],
+            'barcode' => [
+                'nullable',
+                'string',
+                'max:100',
+                'regex:/^[\x20-\x7E]+$/',
+                Rule::unique('products', 'barcode')
+                    ->where('tenant_id', TenantContext::id())
+                    ->ignore($productId),
+                Rule::unique('products', 'sku')
+                    ->where('tenant_id', TenantContext::id())
+                    ->ignore($productId),
             ],
             'description' => ['nullable', 'string', 'max:2000'],
             'cost_price' => ['required', 'numeric', 'min:0'],
@@ -134,8 +211,32 @@ class TenantProductController extends Controller
             'low_stock_threshold' => ['required', 'integer', 'min:0'],
             'warranty_duration_months' => ['required', 'integer', 'min:0', 'max:120'],
             'is_active' => ['nullable', 'boolean'],
-        ]) + [
-            'is_active' => $request->boolean('is_active'),
-        ];
+        ]);
+
+        $validated['barcode'] = filled($validated['barcode'] ?? null)
+            ? trim((string) $validated['barcode'])
+            : null;
+        $validated['is_active'] = $request->boolean('is_active');
+
+        return $validated;
+    }
+
+    private function labelRows(Collection $rows, Collection $products): Collection
+    {
+        return $rows
+            ->map(function (array $row) use ($products): ?array {
+                $product = $products->get($row['product_id']);
+
+                if (! $product) {
+                    return null;
+                }
+
+                return [
+                    'product' => $product,
+                    'quantity' => $row['quantity'],
+                ];
+            })
+            ->filter()
+            ->values();
     }
 }
