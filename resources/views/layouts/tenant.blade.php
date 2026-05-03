@@ -55,20 +55,31 @@
                 </div>
 
                 @if(session()->has('tenant_user_id') && isset($tenant))
-                    <div class="flex items-center justify-center md:justify-end">
-                        <details class="relative" data-menu-dropdown>
-                            <summary class="list-none cursor-pointer flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-2 py-2 hover:bg-slate-50">
-                                <span class="hidden sm:block text-right">
-                                    <span class="block text-sm font-semibold leading-tight">{{ $profileName }}</span>
-                                    <span class="block text-xs text-slate-500 leading-tight">{{ $profileEmail }}</span>
-                                </span>
+                    @php
+                        $notificationCount = (int) ($transferTaskSummary['total'] ?? 0);
+                        $notificationBadge = $notificationCount > 99 ? '99+' : $notificationCount;
+                    @endphp
 
-                                <span class="h-10 w-10 rounded-lg bg-slate-900 text-white grid place-items-center text-sm font-bold">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                        <path d="M20 21a8 8 0 0 0-16 0" />
-                                        <circle cx="12" cy="7" r="4" />
-                                    </svg>
+                    <div class="flex items-center justify-center md:justify-end gap-2">
+                        <a href="{{ route('tenant.notifications.index', $tenant) }}" class="relative h-10 w-10 rounded-lg {{ request()->routeIs('tenant.notifications.*') ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' }} grid place-items-center" title="Notifications">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+                            </svg>
+
+                            @if($notificationCount > 0)
+                                <span class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-bold text-white">
+                                    {{ $notificationBadge }}
                                 </span>
+                            @endif
+                        </a>
+
+                        <details class="relative" data-menu-dropdown>
+                            <summary class="list-none cursor-pointer h-10 w-10 rounded-lg bg-slate-900 text-white grid place-items-center hover:bg-slate-800">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M20 21a8 8 0 0 0-16 0" />
+                                    <circle cx="12" cy="7" r="4" />
+                                </svg>
                             </summary>
 
                             <div class="absolute right-0 z-20 mt-2 w-56 rounded-lg border border-slate-200 bg-white shadow-lg overflow-hidden">
@@ -81,7 +92,7 @@
                                     Settings
                                 </a>
 
-                                @if(in_array(session('tenant_user_role'), ['owner', 'manager'], true))
+                                @if(in_array(session('tenant_user_role'), ['owner', 'manager', 'cashier'], true))
                                     <a href="{{ route('tenant.users.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">
                                         Staff Users
                                     </a>
@@ -143,85 +154,98 @@
                             Invoices
                         </a>
 
-                        <a href="{{ route('tenant.mobile-scanner.index', $tenant) }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.mobile-scanner.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
-                            Mobile Scanner
-                        </a>
+                        <div class="relative group">
+                            <button type="button" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.products.*') || request()->routeIs('tenant.mobile-scanner.*') || request()->routeIs('tenant.categories.*') || request()->routeIs('tenant.brands.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
+                                <span>Catalog</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition group-hover:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="m6 9 6 6 6-6" />
+                                </svg>
+                            </button>
 
-                        <a href="{{ route('tenant.after-sales.index', $tenant) }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.after-sales.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
-                            Returns & Warranty
-                        </a>
-
-                        <details class="relative" data-menu-dropdown>
-                            <summary class="list-none cursor-pointer px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.products.*') || request()->routeIs('tenant.categories.*') || request()->routeIs('tenant.brands.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
-                                Catalog
-                            </summary>
-
-                            <div class="absolute z-30 mt-2 w-52 rounded-lg border border-slate-200 bg-white shadow-lg overflow-hidden">
+                            <div class="invisible pointer-events-none absolute left-0 z-30 mt-2 w-52 rounded-lg border border-slate-200 bg-white shadow-lg opacity-0 transition group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:visible group-focus-within:pointer-events-auto group-focus-within:opacity-100">
                                 <a href="{{ route('tenant.products.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Products</a>
                                 <a href="{{ route('tenant.products.barcode-labels.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Barcode Labels</a>
+                                <a href="{{ route('tenant.mobile-scanner.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Mobile Scanner</a>
                                 <a href="{{ route('tenant.categories.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Categories</a>
                                 <a href="{{ route('tenant.brands.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Brands</a>
                             </div>
-                        </details>
+                        </div>
 
-                        <details class="relative" data-menu-dropdown>
-                            <summary class="list-none cursor-pointer px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.stock.*') || request()->routeIs('tenant.stock-in.*') || request()->routeIs('tenant.stock-adjustments.*') || request()->routeIs('tenant.stock-movements.*') || request()->routeIs('tenant.stock-transfers.index') || request()->routeIs('tenant.stock-transfers.create') || request()->routeIs('tenant.stock-transfers.show') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
-                                Inventory
-                            </summary>
+                        <div class="relative group">
+                            <button type="button" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.stock.*') || request()->routeIs('tenant.stock-in.*') || request()->routeIs('tenant.stock-adjustments.*') || request()->routeIs('tenant.stock-movements.*') || request()->routeIs('tenant.stock-transfers.index') || request()->routeIs('tenant.stock-transfers.create') || request()->routeIs('tenant.stock-transfers.show') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
+                                <span>Inventory</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition group-hover:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="m6 9 6 6 6-6" />
+                                </svg>
+                            </button>
 
-                            <div class="absolute z-20 mt-2 w-52 rounded-lg border border-slate-200 bg-white shadow-lg overflow-hidden">
+                            <div class="invisible pointer-events-none absolute left-0 z-30 mt-2 w-52 rounded-lg border border-slate-200 bg-white shadow-lg opacity-0 transition group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:visible group-focus-within:pointer-events-auto group-focus-within:opacity-100">
                                 <a href="{{ route('tenant.stock.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Stock Levels</a>
                                 <a href="{{ route('tenant.stock-in.create', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Stock In</a>
                                 <a href="{{ route('tenant.stock-transfers.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Transfers</a>
                                 <a href="{{ route('tenant.stock-movements.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Movements</a>
                             </div>
-                        </details>
+                        </div>
 
-                        <details class="relative" data-menu-dropdown>
-                            <summary class="list-none cursor-pointer px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.suppliers.*') || request()->routeIs('tenant.purchases.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
-                                Purchases
-                            </summary>
-
-                            <div class="absolute z-20 mt-2 w-52 rounded-lg border border-slate-200 bg-white shadow-lg overflow-hidden">
-                                <a href="{{ route('tenant.purchases.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Purchase History</a>
-                                <a href="{{ route('tenant.suppliers.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Suppliers</a>
-                            </div>
-                        </details>
-
-                        <a href="{{ route('tenant.stock-transfers.warehouse-tasks', $tenant) }}" title="{{ $warehouseTaskTitle }}" class="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 {{ request()->routeIs('tenant.stock-transfers.warehouse-tasks') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
-                            <span>Warehouse Tasks</span>
-                            @if($warehouseTaskTotal > 0)
-                                <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold {{ $warehouseTaskBadgeClass }}">
-                                    {{ $warehouseTaskBadge }}
-                                </span>
-                            @endif
-                        </a>
-
-                        <a href="{{ route('tenant.stock-transfers.shop-tasks', $tenant) }}" title="{{ $shopTaskTitle }}" class="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 {{ request()->routeIs('tenant.stock-transfers.shop-tasks') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
-                            <span>Shop Tasks</span>
-                            @if($shopTaskTotal > 0)
-                                <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold {{ $shopTaskBadgeClass }}">
-                                    {{ $shopTaskBadge }}
-                                </span>
-                            @endif
-                        </a>
-
-                        <a href="{{ route('tenant.customers.index', $tenant) }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.customers.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
-                            Customers
+                        <a href="{{ route('tenant.after-sales.index', $tenant) }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.after-sales.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
+                            Returns & Warranty
                         </a>
 
                         <a href="{{ route('tenant.accounting.daily-summary', $tenant) }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.accounting.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
                             Accounting
                         </a>
 
-                        <a href="{{ route('tenant.notifications.index', $tenant) }}" class="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 {{ request()->routeIs('tenant.notifications.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
-                            <span>Notifications</span>
-                            @if(($transferTaskSummary['total'] ?? 0) > 0)
-                                <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-bold text-white">
-                                    {{ ($transferTaskSummary['total'] ?? 0) > 99 ? '99+' : ($transferTaskSummary['total'] ?? 0) }}
-                                </span>
-                            @endif
+                        <div class="relative group">
+                            <button type="button" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.suppliers.*') || request()->routeIs('tenant.purchases.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
+                                <span>Purchases</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition group-hover:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="m6 9 6 6 6-6" />
+                                </svg>
+                            </button>
+
+                            <div class="invisible pointer-events-none absolute left-0 z-30 mt-2 w-52 rounded-lg border border-slate-200 bg-white shadow-lg opacity-0 transition group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:visible group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+                                <a href="{{ route('tenant.purchases.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Purchase History</a>
+                                <a href="{{ route('tenant.suppliers.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Suppliers</a>
+                            </div>
+                        </div>
+
+                        <a href="{{ route('tenant.customers.index', $tenant) }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.customers.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
+                            Customers
                         </a>
+
+                        <div class="relative group">
+                            <button type="button" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.stock-transfers.shop-tasks') || request()->routeIs('tenant.stock-transfers.warehouse-tasks') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
+                                <span>Tasks</span>
+                                @if(($warehouseTaskTotal + $shopTaskTotal) > 0)
+                                    <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-bold text-white">
+                                        {{ (($warehouseTaskTotal + $shopTaskTotal) > 99) ? '99+' : ($warehouseTaskTotal + $shopTaskTotal) }}
+                                    </span>
+                                @endif
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition group-hover:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="m6 9 6 6 6-6" />
+                                </svg>
+                            </button>
+
+                            <div class="invisible pointer-events-none absolute right-0 z-30 mt-2 w-56 rounded-lg border border-slate-200 bg-white shadow-lg opacity-0 transition group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:visible group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+                                <a href="{{ route('tenant.stock-transfers.shop-tasks', $tenant) }}" title="{{ $shopTaskTitle }}" class="flex items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                                    <span>Shop Task</span>
+                                    @if($shopTaskTotal > 0)
+                                        <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold {{ $shopTaskBadgeClass }}">
+                                            {{ $shopTaskBadge }}
+                                        </span>
+                                    @endif
+                                </a>
+
+                                <a href="{{ route('tenant.stock-transfers.warehouse-tasks', $tenant) }}" title="{{ $warehouseTaskTitle }}" class="flex items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                                    <span>Warehouse Task</span>
+                                    @if($warehouseTaskTotal > 0)
+                                        <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold {{ $warehouseTaskBadgeClass }}">
+                                            {{ $warehouseTaskBadge }}
+                                        </span>
+                                    @endif
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </nav>
             @endif
