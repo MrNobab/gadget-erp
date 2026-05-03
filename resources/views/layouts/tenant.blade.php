@@ -56,7 +56,7 @@
 
                 @if(session()->has('tenant_user_id') && isset($tenant))
                     <div class="flex items-center justify-center md:justify-end">
-                        <details class="relative">
+                        <details class="relative" data-menu-dropdown>
                             <summary class="list-none cursor-pointer flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-2 py-2 hover:bg-slate-50">
                                 <span class="hidden sm:block text-right">
                                     <span class="block text-sm font-semibold leading-tight">{{ $profileName }}</span>
@@ -147,12 +147,12 @@
                             Returns & Warranty
                         </a>
 
-                        <details class="relative">
+                        <details class="relative" data-menu-dropdown>
                             <summary class="list-none cursor-pointer px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.products.*') || request()->routeIs('tenant.categories.*') || request()->routeIs('tenant.brands.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
                                 Catalog
                             </summary>
 
-                            <div class="absolute z-20 mt-2 w-44 rounded-lg border border-slate-200 bg-white shadow-lg overflow-hidden">
+                            <div class="absolute z-30 mt-2 w-52 rounded-lg border border-slate-200 bg-white shadow-lg overflow-hidden">
                                 <a href="{{ route('tenant.products.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Products</a>
                                 <a href="{{ route('tenant.products.barcode-labels.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Barcode Labels</a>
                                 <a href="{{ route('tenant.categories.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Categories</a>
@@ -160,7 +160,7 @@
                             </div>
                         </details>
 
-                        <details class="relative">
+                        <details class="relative" data-menu-dropdown>
                             <summary class="list-none cursor-pointer px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.stock.*') || request()->routeIs('tenant.stock-in.*') || request()->routeIs('tenant.stock-adjustments.*') || request()->routeIs('tenant.stock-movements.*') || request()->routeIs('tenant.stock-transfers.index') || request()->routeIs('tenant.stock-transfers.create') || request()->routeIs('tenant.stock-transfers.show') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
                                 Inventory
                             </summary>
@@ -173,7 +173,7 @@
                             </div>
                         </details>
 
-                        <details class="relative">
+                        <details class="relative" data-menu-dropdown>
                             <summary class="list-none cursor-pointer px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.suppliers.*') || request()->routeIs('tenant.purchases.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
                                 Purchases
                             </summary>
@@ -244,5 +244,39 @@
             @yield('content')
         </main>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const dropdowns = Array.from(document.querySelectorAll('[data-menu-dropdown]'));
+
+            function closeDropdowns(except = null) {
+                dropdowns.forEach(dropdown => {
+                    if (dropdown !== except) {
+                        dropdown.removeAttribute('open');
+                    }
+                });
+            }
+
+            dropdowns.forEach(dropdown => {
+                dropdown.addEventListener('toggle', function () {
+                    if (this.open) {
+                        closeDropdowns(this);
+                    }
+                });
+            });
+
+            document.addEventListener('click', function (event) {
+                if (!event.target.closest('[data-menu-dropdown]')) {
+                    closeDropdowns();
+                }
+            });
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape') {
+                    closeDropdowns();
+                }
+            });
+        });
+    </script>
 </body>
 </html>
