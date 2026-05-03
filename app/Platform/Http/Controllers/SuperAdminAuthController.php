@@ -52,9 +52,11 @@ class SuperAdminAuthController extends Controller
     public function dashboard(): View
     {
         $superAdmin = SuperAdmin::query()->find(session('super_admin_id'));
+        $brandingColumnsReady = $this->hasBrandingColumns();
 
         return view('admin.dashboard', [
             'superAdmin' => $superAdmin,
+            'brandingColumnsReady' => $brandingColumnsReady,
             'tenantCount' => Tenant::query()->count(),
             'planCount' => Plan::query()->count(),
             'activeLicenseCount' => License::query()->where('status', License::STATUS_ACTIVE)->count(),
@@ -66,6 +68,12 @@ class SuperAdminAuthController extends Controller
 
     public function updateBranding(Request $request): RedirectResponse
     {
+        if (! $this->hasBrandingColumns()) {
+            return back()->withErrors([
+                'branding' => 'ERP owner branding is not ready yet. Please run the latest database migrations, then try again.',
+            ]);
+        }
+
         $validated = $request->validate([
             'brand_name' => ['nullable', 'string', 'max:100'],
             'brand_tagline' => ['nullable', 'string', 'max:150'],
@@ -97,7 +105,7 @@ class SuperAdminAuthController extends Controller
 
     public function platformLogo()
     {
-        if (! Schema::hasColumn('super_admins', 'logo_path')) {
+        if (! $this->hasBrandingColumns()) {
             abort(404, 'ERP owner logo not found.');
         }
 
@@ -113,6 +121,13 @@ class SuperAdminAuthController extends Controller
         return response()->file(Storage::disk('public')->path($superAdmin->logo_path), [
             'Cache-Control' => 'public, max-age=86400',
         ]);
+    }
+
+    private function hasBrandingColumns(): bool
+    {
+        return Schema::hasColumn('super_admins', 'brand_name')
+            && Schema::hasColumn('super_admins', 'brand_tagline')
+            && Schema::hasColumn('super_admins', 'logo_path');
     }
 
     public function logout(Request $request): RedirectResponse
