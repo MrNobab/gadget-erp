@@ -60,6 +60,7 @@ class TenantAuthController extends Controller
         $request->session()->put('tenant_id', $tenant->id);
         $request->session()->put('tenant_user_name', $user->name);
         $request->session()->put('tenant_user_email', $user->email);
+        $request->session()->put('tenant_user_role', $user->tenantRole());
 
         return redirect()->route('tenant.dashboard', $tenant);
     }
@@ -71,6 +72,7 @@ class TenantAuthController extends Controller
             'tenant_id',
             'tenant_user_name',
             'tenant_user_email',
+            'tenant_user_role',
         ]);
 
         $request->session()->regenerateToken();

@@ -47,7 +47,20 @@
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-slate-700">Supplier Name</label>
+                <label class="block text-sm font-medium text-slate-700">Supplier</label>
+                <select name="supplier_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+                    <option value="">No supplier selected</option>
+                    @foreach($suppliers as $supplier)
+                        <option value="{{ $supplier->id }}" @selected(old('supplier_id') == $supplier->id)>
+                            {{ $supplier->name }}
+                        </option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-xs text-slate-500">Add suppliers from Purchases > Suppliers.</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Supplier Name (manual)</label>
                 <input type="text" name="supplier_name" value="{{ old('supplier_name') }}" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
             </div>
 

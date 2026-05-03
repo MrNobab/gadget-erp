@@ -7,6 +7,7 @@ use App\Domain\Inventory\Models\ProductPurchaseLot;
 use App\Domain\Inventory\Models\StockMovement;
 use App\Domain\Inventory\Models\Warehouse;
 use App\Domain\Inventory\Models\WarehouseStock;
+use App\Domain\Purchasing\Models\Supplier;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -28,6 +29,9 @@ class InventoryService
         return DB::transaction(function () use ($data, $createdBy, $quantity, $unitCost): ProductPurchaseLot {
             Product::query()->findOrFail((int) $data['product_id']);
             Warehouse::query()->findOrFail((int) $data['warehouse_id']);
+            $supplier = ! empty($data['supplier_id'])
+                ? Supplier::query()->whereKey((int) $data['supplier_id'])->lockForUpdate()->firstOrFail()
+                : null;
 
             $stock = $this->getOrCreateStock(
                 (int) $data['warehouse_id'],
@@ -52,10 +56,11 @@ class InventoryService
             $lot = ProductPurchaseLot::query()->create([
                 'warehouse_id' => (int) $data['warehouse_id'],
                 'product_id' => (int) $data['product_id'],
+                'supplier_id' => $supplier?->id,
                 'quantity_purchased' => $quantity,
                 'unit_cost' => $unitCost,
                 'total_cost' => $incomingValue,
-                'supplier_name' => $data['supplier_name'] ?? null,
+                'supplier_name' => $supplier?->name ?? ($data['supplier_name'] ?? null),
                 'reference_no' => $data['reference_no'] ?? null,
                 'purchased_at' => $data['purchased_at'],
                 'notes' => $data['notes'] ?? null,
@@ -84,6 +89,11 @@ class InventoryService
                 'notes' => $data['notes'] ?? null,
                 'created_by' => $createdBy,
             ]);
+
+            if ($supplier) {
+                $supplier->increment('total_purchases', $incomingValue);
+                $supplier->increment('total_due', $incomingValue);
+            }
 
             return $lot;
         });

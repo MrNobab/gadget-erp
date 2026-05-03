@@ -25,22 +25,25 @@ class EnsureTenantUserAuthenticated
             return redirect()->route('tenant.login', $tenant);
         }
 
-        $userExists = User::query()
+        $user = User::query()
             ->where('id', $userId)
             ->where('tenant_id', $tenant->id)
             ->where('is_active', true)
-            ->exists();
+            ->first();
 
-        if (! $userExists) {
+        if (! $user) {
             $request->session()->forget([
                 'tenant_user_id',
                 'tenant_id',
                 'tenant_user_name',
                 'tenant_user_email',
+                'tenant_user_role',
             ]);
 
             return redirect()->route('tenant.login', $tenant);
         }
+
+        $request->session()->put('tenant_user_role', $user->tenantRole());
 
         return $next($request);
     }

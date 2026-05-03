@@ -3,6 +3,7 @@
 use App\Http\Middleware\CheckTenantLicenseStatus;
 use App\Http\Middleware\EnsureSuperAdminAuthenticated;
 use App\Http\Middleware\EnsureTenantUserAuthenticated;
+use App\Http\Middleware\EnsureTenantUserHasRole;
 use App\Http\Middleware\SetTenantContextBySlug;
 use App\Platform\Http\Controllers\AdminPlanController;
 use App\Platform\Http\Controllers\AdminTenantController;
@@ -14,10 +15,15 @@ use App\Tenant\Http\Controllers\Catalog\TenantProductController;
 use App\Tenant\Http\Controllers\Customers\TenantCustomerController;
 use App\Tenant\Http\Controllers\Inventory\TenantInventoryController;
 use App\Tenant\Http\Controllers\Inventory\TenantStockTransferController;
+use App\Tenant\Http\Controllers\Purchasing\TenantPurchaseController;
+use App\Tenant\Http\Controllers\Purchasing\TenantSupplierController;
+use App\Tenant\Http\Controllers\Sales\TenantAfterSalesController;
 use App\Tenant\Http\Controllers\Sales\TenantSalesController;
 use App\Tenant\Http\Controllers\Settings\TenantShopSettingController;
+use App\Tenant\Http\Controllers\Settings\TenantUserController;
 use App\Tenant\Http\Controllers\TenantAuthController;
 use App\Tenant\Http\Controllers\TenantDashboardController;
+use App\Tenant\Http\Controllers\TenantNotificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -56,6 +62,7 @@ Route::prefix('shop/{tenant:slug}')->group(function (): void {
         CheckTenantLicenseStatus::class,
     ])->group(function (): void {
         Route::get('/dashboard', [TenantDashboardController::class, 'index'])->name('tenant.dashboard');
+        Route::get('/notifications', [TenantNotificationController::class, 'index'])->name('tenant.notifications.index');
 
         Route::get('/settings/shop/logo', [TenantShopSettingController::class, 'logo'])->name('tenant.settings.shop.logo');
 
@@ -91,6 +98,15 @@ Route::prefix('shop/{tenant:slug}')->group(function (): void {
 
         Route::get('/settings/shop', [TenantShopSettingController::class, 'edit'])->name('tenant.settings.shop.edit');
         Route::put('/settings/shop', [TenantShopSettingController::class, 'update'])->name('tenant.settings.shop.update');
+        Route::get('/settings/users', [TenantUserController::class, 'index'])
+            ->middleware(EnsureTenantUserHasRole::class . ':owner,manager')
+            ->name('tenant.users.index');
+        Route::post('/settings/users', [TenantUserController::class, 'store'])
+            ->middleware(EnsureTenantUserHasRole::class . ':owner,manager')
+            ->name('tenant.users.store');
+        Route::put('/settings/users/{userId}', [TenantUserController::class, 'update'])
+            ->middleware(EnsureTenantUserHasRole::class . ':owner,manager')
+            ->name('tenant.users.update');
 
         Route::get('/pos', [TenantSalesController::class, 'pos'])->name('tenant.pos.create');
         Route::post('/pos', [TenantSalesController::class, 'storeInvoice'])->name('tenant.pos.store');
@@ -99,6 +115,19 @@ Route::prefix('shop/{tenant:slug}')->group(function (): void {
         Route::get('/invoices/{invoiceId}/pdf', [TenantSalesController::class, 'downloadInvoicePdf'])->name('tenant.invoices.pdf');
         Route::get('/invoices/{invoiceId}', [TenantSalesController::class, 'showInvoice'])->name('tenant.invoices.show');
         Route::post('/invoices/{invoiceId}/payments', [TenantSalesController::class, 'storePayment'])->name('tenant.invoices.payments.store');
+        Route::middleware(EnsureTenantUserHasRole::class . ':owner,manager,cashier')->group(function (): void {
+            Route::get('/after-sales', [TenantAfterSalesController::class, 'index'])->name('tenant.after-sales.index');
+            Route::post('/after-sales/returns', [TenantAfterSalesController::class, 'storeReturn'])->name('tenant.after-sales.returns.store');
+            Route::post('/after-sales/warranty', [TenantAfterSalesController::class, 'storeWarranty'])->name('tenant.after-sales.warranty.store');
+            Route::put('/after-sales/warranty/{claimId}', [TenantAfterSalesController::class, 'updateWarranty'])->name('tenant.after-sales.warranty.update');
+        });
+
+        Route::middleware(EnsureTenantUserHasRole::class . ':owner,manager,warehouse,accountant')->group(function (): void {
+            Route::get('/suppliers', [TenantSupplierController::class, 'index'])->name('tenant.suppliers.index');
+            Route::post('/suppliers', [TenantSupplierController::class, 'store'])->name('tenant.suppliers.store');
+            Route::put('/suppliers/{supplierId}', [TenantSupplierController::class, 'update'])->name('tenant.suppliers.update');
+            Route::get('/purchases', [TenantPurchaseController::class, 'index'])->name('tenant.purchases.index');
+        });
 
         Route::get('/categories', [TenantCategoryController::class, 'index'])->name('tenant.categories.index');
         Route::post('/categories', [TenantCategoryController::class, 'store'])->name('tenant.categories.store');

@@ -57,6 +57,7 @@ class TenantProvisioner
                 'email' => $data['owner_email'],
                 'password' => Hash::make($data['owner_password']),
                 'is_owner' => true,
+                'role' => User::ROLE_OWNER,
                 'is_active' => true,
             ]);
 

@@ -13,12 +13,19 @@ class User extends Authenticatable
     use HasFactory;
     use Notifiable;
 
+    public const ROLE_OWNER = 'owner';
+    public const ROLE_MANAGER = 'manager';
+    public const ROLE_CASHIER = 'cashier';
+    public const ROLE_WAREHOUSE = 'warehouse';
+    public const ROLE_ACCOUNTANT = 'accountant';
+
     protected $fillable = [
         'tenant_id',
         'name',
         'email',
         'password',
         'is_owner',
+        'role',
         'is_active',
         'last_login_at',
     ];
@@ -37,6 +44,31 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
         ];
+    }
+
+    public static function roleOptions(): array
+    {
+        return [
+            self::ROLE_OWNER => 'Owner',
+            self::ROLE_MANAGER => 'Manager',
+            self::ROLE_CASHIER => 'Cashier',
+            self::ROLE_WAREHOUSE => 'Warehouse Staff',
+            self::ROLE_ACCOUNTANT => 'Accountant',
+        ];
+    }
+
+    public function tenantRole(): string
+    {
+        if ($this->is_owner) {
+            return self::ROLE_OWNER;
+        }
+
+        return $this->role ?: self::ROLE_MANAGER;
+    }
+
+    public function hasTenantRole(array|string $roles): bool
+    {
+        return in_array($this->tenantRole(), (array) $roles, true);
     }
 
     public function tenant(): BelongsTo

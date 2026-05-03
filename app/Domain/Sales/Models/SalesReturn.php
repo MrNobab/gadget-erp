@@ -1,38 +1,49 @@
 <?php
 
-namespace App\Domain\Inventory\Models;
+namespace App\Domain\Sales\Models;
 
 use App\Domain\Catalog\Models\Product;
-use App\Domain\Purchasing\Models\Supplier;
+use App\Domain\Inventory\Models\Warehouse;
 use App\Models\User;
 use App\Support\Models\TenantModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ProductPurchaseLot extends TenantModel
+class SalesReturn extends TenantModel
 {
+    public const STATUS_COMPLETED = 'completed';
+
     protected $fillable = [
         'tenant_id',
+        'invoice_id',
+        'invoice_item_id',
         'warehouse_id',
         'product_id',
-        'supplier_id',
-        'quantity_purchased',
-        'unit_cost',
-        'total_cost',
-        'supplier_name',
-        'reference_no',
-        'purchased_at',
+        'quantity',
+        'refund_amount',
+        'status',
+        'reason',
         'notes',
+        'returned_at',
         'created_by',
     ];
 
     protected function casts(): array
     {
         return [
-            'quantity_purchased' => 'integer',
-            'unit_cost' => 'decimal:4',
-            'total_cost' => 'decimal:4',
-            'purchased_at' => 'date',
+            'quantity' => 'integer',
+            'refund_amount' => 'decimal:4',
+            'returned_at' => 'date',
         ];
+    }
+
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class);
+    }
+
+    public function invoiceItem(): BelongsTo
+    {
+        return $this->belongsTo(InvoiceItem::class);
     }
 
     public function warehouse(): BelongsTo
@@ -43,11 +54,6 @@ class ProductPurchaseLot extends TenantModel
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
-    }
-
-    public function supplier(): BelongsTo
-    {
-        return $this->belongsTo(Supplier::class);
     }
 
     public function creator(): BelongsTo

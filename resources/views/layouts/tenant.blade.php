@@ -81,6 +81,12 @@
                                     Settings
                                 </a>
 
+                                @if(in_array(session('tenant_user_role'), ['owner', 'manager'], true))
+                                    <a href="{{ route('tenant.users.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                                        Staff Users
+                                    </a>
+                                @endif
+
                                 <form method="POST" action="{{ route('tenant.logout', $tenant) }}">
                                     @csrf
                                     <button type="submit" class="w-full text-left px-4 py-3 text-sm font-medium text-red-700 hover:bg-red-50">
@@ -137,6 +143,10 @@
                             Invoices
                         </a>
 
+                        <a href="{{ route('tenant.after-sales.index', $tenant) }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.after-sales.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
+                            Returns & Warranty
+                        </a>
+
                         <details class="relative">
                             <summary class="list-none cursor-pointer px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.products.*') || request()->routeIs('tenant.categories.*') || request()->routeIs('tenant.brands.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
                                 Catalog
@@ -159,6 +169,17 @@
                                 <a href="{{ route('tenant.stock-in.create', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Stock In</a>
                                 <a href="{{ route('tenant.stock-transfers.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Transfers</a>
                                 <a href="{{ route('tenant.stock-movements.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Movements</a>
+                            </div>
+                        </details>
+
+                        <details class="relative">
+                            <summary class="list-none cursor-pointer px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.suppliers.*') || request()->routeIs('tenant.purchases.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
+                                Purchases
+                            </summary>
+
+                            <div class="absolute z-20 mt-2 w-52 rounded-lg border border-slate-200 bg-white shadow-lg overflow-hidden">
+                                <a href="{{ route('tenant.purchases.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Purchase History</a>
+                                <a href="{{ route('tenant.suppliers.index', $tenant) }}" class="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Suppliers</a>
                             </div>
                         </details>
 
@@ -186,6 +207,15 @@
 
                         <a href="{{ route('tenant.accounting.daily-summary', $tenant) }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('tenant.accounting.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
                             Accounting
+                        </a>
+
+                        <a href="{{ route('tenant.notifications.index', $tenant) }}" class="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 {{ request()->routeIs('tenant.notifications.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
+                            <span>Notifications</span>
+                            @if(($transferTaskSummary['total'] ?? 0) > 0)
+                                <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-bold text-white">
+                                    {{ ($transferTaskSummary['total'] ?? 0) > 99 ? '99+' : ($transferTaskSummary['total'] ?? 0) }}
+                                </span>
+                            @endif
                         </a>
                     </div>
                 </nav>

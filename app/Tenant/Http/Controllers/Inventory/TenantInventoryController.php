@@ -9,6 +9,7 @@ use App\Domain\Inventory\Models\StockMovement;
 use App\Domain\Inventory\Models\Warehouse;
 use App\Domain\Inventory\Models\WarehouseStock;
 use App\Domain\Inventory\Services\InventoryService;
+use App\Domain\Purchasing\Models\Supplier;
 use App\Http\Controllers\Controller;
 use App\Platform\Models\Tenant;
 use App\Support\Services\TenantContext;
@@ -53,6 +54,7 @@ class TenantInventoryController extends Controller
             'tenant' => $tenant,
             'warehouses' => Warehouse::query()->where('is_active', true)->orderBy('name')->get(),
             'products' => Product::query()->where('is_active', true)->orderBy('name')->get(),
+            'suppliers' => Supplier::query()->where('is_active', true)->orderBy('name')->get(),
         ]);
     }
 
@@ -68,6 +70,11 @@ class TenantInventoryController extends Controller
                 'required',
                 'integer',
                 Rule::exists('products', 'id')->where('tenant_id', TenantContext::id()),
+            ],
+            'supplier_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('suppliers', 'id')->where('tenant_id', TenantContext::id()),
             ],
             'quantity' => ['required', 'integer', 'min:1'],
             'unit_cost' => ['required', 'numeric', 'min:0'],
